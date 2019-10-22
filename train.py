@@ -47,6 +47,8 @@ def main():
 
     base_kwargs = {'hidden_size': args.hidden_size, 
                    'film_size': 800 * (not args.sim_no_extra)}
+    if args.relu:
+        base_kwargs['activation'] = 'relu'
     base = FILMBase #FILMBase
 
     test_graphs = [1,2,3,4,5]

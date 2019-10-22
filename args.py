@@ -108,6 +108,8 @@ def my_get_args(string=None):
                         help='Number of graphs to keep simultaneously')
     parser.add_argument('--hidden-size', type=int, default=256,
                         help='Neural network hidden size')
+    parser.add_argument('--relu', action='store_true', default=False,
+                        help='ReLU instead of Tanh in agent')
 
     if string is None:
         args = parser.parse_args()

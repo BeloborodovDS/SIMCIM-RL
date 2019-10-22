@@ -252,8 +252,15 @@ class MLPBase(NNBase):
     
     
 class FILMBase(NNBase):
-    def __init__(self, num_inputs, film_size=0, hidden_size=64):
+    def __init__(self, num_inputs, film_size=0, hidden_size=64, activation='tanh'):
         super(FILMBase, self).__init__(False, hidden_size, hidden_size)
+
+        if activation == 'tanh':
+            act_class = nn.Tanh
+        elif activation == 'relu':
+            act_class = nn.ReLU
+        else:
+            raise ValueError('Activation {} not implemented'.format(activation))
 
         init_ = lambda m: init(m,
             nn.init.orthogonal_,
@@ -262,16 +269,16 @@ class FILMBase(NNBase):
         
         self.actor = nn.Sequential(
             init_(nn.Linear(num_inputs - film_size, hidden_size)),
-            nn.Tanh(),
+            act_class(),
             init_(nn.Linear(hidden_size, hidden_size)),
-            nn.Tanh()
+            act_class()
         )
 
         self.critic = nn.Sequential(
             init_(nn.Linear(num_inputs - film_size, hidden_size)),
-            nn.Tanh(),
+            act_class(),
             init_(nn.Linear(hidden_size, hidden_size)),
-            nn.Tanh(), 
+            act_class(), 
             init_(nn.Linear(hidden_size, 1))
         )
         
