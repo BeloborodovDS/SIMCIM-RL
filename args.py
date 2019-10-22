@@ -1,6 +1,9 @@
 import argparse
 import torch
 
+import json
+import os
+
 
 def my_get_args(string=None):
     parser = argparse.ArgumentParser(description='RL')
@@ -91,7 +94,7 @@ def my_get_args(string=None):
                         help='SIM pump span for continuous actions (3.0)')
     parser.add_argument('--sim-percentile', type=float, default=99.0,
                         help='SIM ranked rewards percentile (99)')
-    parser.add_argument('--sim-perc-len', type=int, default=100,
+    parser.add_argument('--sim-perc-len', type=int, default=5,
                         help='SIM: number of last runs to calculate percentiles (100)')
     parser.add_argument('--sim-no-linear', action='store_true', default=False,
                         help='SIM: remove linear pump baseline')
@@ -111,10 +114,32 @@ def my_get_args(string=None):
     parser.add_argument('--relu', action='store_true', default=False,
                         help='ReLU instead of Tanh in agent')
 
+    parser.add_argument('--transfer', type=int, default=0, 
+                        help='Perform transfer on graph instance G[transfer] from Gset')
+
     if string is None:
         args = parser.parse_args()
     else:
         args = parser.parse_args([e for e in string.strip().split() if len(e)>0])
+
+    dn = os.path.join(args.save_dir, args.algo)
+
+    if args.snapshot is not None:
+        fn = '-'.join(args.snapshot.split('-')[:-1]) + '.json'
+        fn = os.path.join(dn, fn)
+        with open(fn) as f:
+            conf = json.load(f)
+        d = vars(args)
+        for k,v in conf.items():
+            d[k] = v
+    
+    # save args
+    fn = args.env_name + '.json'
+    fn = os.path.join(dn, fn)
+    conf = {k:v for k,v in vars(args).items() 
+            if k in {'hidden_size', 'num_steps', 'relu'} or k.startswith('sim_')}
+    with open(fn, 'w') as f:
+        json.dump(conf, f, sort_keys=True, indent=2)
 
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
