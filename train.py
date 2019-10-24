@@ -23,6 +23,9 @@ from args import my_get_args
 
     
 def main():
+    if not os.path.exists("./plots"):
+        os.makedirs("./plots")
+
     gbench = read_gbench('./data/gbench.txt')
 
     args = my_get_args()
@@ -313,7 +316,7 @@ def main():
             plt.legend([str(e) for e in test_graphs])
             
             plt.tight_layout()
-            plt.savefig('./agent_'+args.env_name+'.pdf')
+            plt.savefig('./plots/agent_'+args.env_name+'.pdf')
             plt.clf()
             plt.close()
             gc.collect()
@@ -329,7 +332,7 @@ def main():
                     dc = stoch_cuts[gi][stoch_cuts[gi] >= mn]
                     if dc.size>0:
                         axs[gi].hist(dc, bins=100, alpha=0.7)
-                plt.savefig('./cuts_'+args.env_name+'.pdf')
+                plt.savefig('./plots/cuts_'+args.env_name+'.pdf')
                 plt.clf()
                 plt.close()
                 gc.collect()

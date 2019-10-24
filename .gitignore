@@ -3,3 +3,4 @@
 *.pdf
 *__pycache__*
 checkpoints/
+plots/
