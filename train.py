@@ -2,6 +2,9 @@ import copy
 import os
 import time
 import argparse
+import gc
+from collections import defaultdict
+import json
 
 import numpy as np
 import torch
@@ -17,8 +20,6 @@ from simcim import SIMGeneratorRandom, SIMCIM, SIMCollection
 from utils import read_gbench, read_gset
 
 from args import my_get_args
-
-import gc
 
     
 def main():
@@ -74,6 +75,8 @@ def main():
     torch.set_num_threads(1)
     device = torch.device("cuda:0" if args.cuda else "cpu")
 
+    logdata = defaultdict(list)
+
     if args.gset > 0:
         envs = []
         for g in test_graphs:
@@ -82,6 +85,7 @@ def main():
             s.runpump()
             envs.append(s)
         envs = SIMCollection(envs, [gbench[g] for g in test_graphs])
+        logdata['bls_bench'] = [gbench[g] for g in test_graphs]
     else:
         envs = SIMGeneratorRandom(800, 0.06, args.num_processes, config, 
                                 keep=args.sim_keep, n_sims=args.sim_nsim)
@@ -118,15 +122,6 @@ def main():
 
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
-
-    episode_rewards = []
-    eval_episode_rewards = []
-    alosses = []
-    vlosses = []
-    pumps = []
-    spumps = []
-    train_percentiles = []
-    test_percentiles = []
         
     eval_envs = []
     for g in test_graphs:
@@ -136,6 +131,7 @@ def main():
         eval_envs.append(s)
     eval_envs = SIMCollection(eval_envs, [gbench[g] for g in test_graphs])
     ref_cuts = [s.lastcuts for s in eval_envs.envs]
+    logdata['ref_cuts'] = [e.tolist() for e in ref_cuts]
 
     stoch_cuts = None
 
@@ -166,7 +162,11 @@ def main():
 
             if 'episode' in infos[0].keys():
                 rw = np.mean([e['episode']['r'] for e in infos])
-                episode_rewards.append(rw)
+                logdata['episode_rewards'].append(rw.item())
+                if args.gset > 0:
+                    cuts = [e.lastcuts for e in envs.envs]
+                    logdata['train_median'].append([np.median(e).item() for e in cuts])
+                    logdata['train_max'].append([np.max(e).item() for e in cuts])
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0]
@@ -182,10 +182,10 @@ def main():
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.tau)
 
         value_loss, action_loss, _ = agent.update(rollouts)
-        alosses.append(action_loss)
-        vlosses.append(value_loss)
+        logdata['alosses'].append(action_loss)
+        logdata['vlosses'].append(value_loss)
 
-        train_percentiles.append(envs.perc)
+        logdata['train_percentiles'].append(envs.perc.tolist())
 
         rollouts.after_update()
         
@@ -211,22 +211,21 @@ def main():
         total_num_steps = (j + 1) * args.num_processes * args.num_steps
         
         #LOGGING
-        if j % args.log_interval == 0 and len(episode_rewards) > 1:
+        if j % args.log_interval == 0 and len(logdata['episode_rewards']) > 1:
             end = time.time()
             print("Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: \
                 mean/median reward {:.3f}/{:.3f}, min/max reward {:.3f}/{:.3f}\n".
                 format(j, total_num_steps,
                     int(total_num_steps / (end - start)),
-                    len(episode_rewards),
-                    np.mean(episode_rewards[-10:]),
-                    np.median(episode_rewards[-10:]),
-                    np.min(episode_rewards[-10:]),
-                    np.max(episode_rewards[-10:])))
+                    len(logdata['episode_rewards']),
+                    np.mean(logdata['episode_rewards'][-10:]),
+                    np.median(logdata['episode_rewards'][-10:]),
+                    np.min(logdata['episode_rewards'][-10:]),
+                    np.max(logdata['episode_rewards'][-10:])))
 
         #EVALUATION
         if (args.eval_interval is not None and j % args.eval_interval == 0):
-            pumps = []
-            spumps = []
+            logdata['spumps'] = []
 
             vec_norm = get_vec_normalize(eval_envs)
             if vec_norm is not None:
@@ -242,7 +241,7 @@ def main():
 
             while not eval_done:
                 p = eval_envs.envs[0].old_p
-                spumps.append(p[:10].cpu().numpy().copy())
+                logdata['spumps'].append(p[:10].cpu().numpy().tolist())
 
                 with torch.no_grad():
                     _, action, _, eval_recurrent_hidden_states = actor_critic.act(
@@ -259,17 +258,23 @@ def main():
                                         device=device)
 
             stoch_cuts = [e.lastcuts for e in eval_envs.envs]
+            logdata['stoch_cuts'] = [e.tolist() for e in stoch_cuts]
+            logdata['eval_median'].append([np.median(e).item() for e in stoch_cuts])
+            logdata['eval_max'].append([np.max(e).item() for e in stoch_cuts])
             
-            test_percentiles.append(eval_envs.perc)
+            logdata['test_percentiles'].append(eval_envs.perc.tolist())
 
             rw = np.mean([e['episode']['r'] for e in infos])
-            eval_episode_rewards.append(rw)
-            pumps = np.array(pumps)
-            spumps = np.array(spumps)
+            logdata['eval_episode_rewards'].append(rw.item())
 
             print(" Evaluation using {} episodes: mean reward {:.5f}\n".
-                format(len(eval_episode_rewards),
-                    np.mean(eval_episode_rewards)))
+                format(len(logdata['eval_episode_rewards']),
+                    np.mean(logdata['eval_episode_rewards'])))
+
+        if j % args.log_interval == 0:
+            fn = os.path.join(save_path, args.env_name + ".res")
+            with open(fn, 'w') as f:
+                json.dump(logdata, f, sort_keys=True, indent=2)
 
         #VISUALIZATION
         if j % args.vis_interval == 0:
@@ -279,32 +284,32 @@ def main():
             plt.subplot(231)
             plt.title('Rewards')
             plt.xlabel('SIM runs')
-            plt.plot(episode_rewards, c='r', label='mean train')
-            plt.plot(np.linspace(0, len(episode_rewards), len(eval_episode_rewards)), eval_episode_rewards, 'b',
-                    label='mean eval')
+            plt.plot(logdata['episode_rewards'], c='r', label='mean train')
+            plt.plot(np.linspace(0, len(logdata['episode_rewards']), len(logdata['eval_episode_rewards'])), 
+                     logdata['eval_episode_rewards'], 'b', label='mean eval')
             plt.legend()
             
             plt.subplot(232)
-            plt.plot(alosses)
+            plt.plot(logdata['alosses'])
             plt.title('Policy loss')
             
             plt.subplot(233)
-            plt.plot(vlosses)
+            plt.plot(logdata['vlosses'])
             plt.title('Value loss')
             
             plt.subplot(234)
             plt.title('Pumps')
             plt.xlabel('SIM iterations / 10')
-            plt.plot(spumps)
+            plt.plot(np.array(logdata['spumps']))
             plt.ylim(-0.05,1.1)
             
             plt.subplot(235)
-            plt.plot(train_percentiles)
+            plt.plot(logdata['train_percentiles'])
             plt.title('Train average percentile')
             
             plt.subplot(236)
             plt.title('Test percentiles')
-            plt.plot(test_percentiles)
+            plt.plot(logdata['test_percentiles'])
             plt.legend([str(e) for e in test_graphs])
             
             plt.tight_layout()
