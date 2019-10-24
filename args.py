@@ -33,7 +33,7 @@ def my_get_args(string=None):
                         help="sets flags for determinism when using CUDA (potentially slow!)")
     parser.add_argument('--num-processes', type=int, default=256,
                         help='how many training CPU processes to use (default: 16)')
-    parser.add_argument('--num-val-processes', type=int, default=1280,
+    parser.add_argument('--num-val-processes', type=int, default=256,
                         help='how many validation CPU processes to use (default: 16)')
     parser.add_argument('--num-steps', type=int, default=100,
                         help='number of forward steps in A2C (default: 5)')
@@ -114,8 +114,8 @@ def my_get_args(string=None):
     parser.add_argument('--relu', action='store_true', default=False,
                         help='ReLU instead of Tanh in agent')
 
-    parser.add_argument('--transfer', type=int, default=0, 
-                        help='Perform transfer on graph instance G[transfer] from Gset')
+    parser.add_argument('--gset', type=int, default=0, 
+                        help='Train on graph instance G[gset] from Gset (0 to generate random graphs)')
 
     if string is None:
         args = parser.parse_args()

@@ -51,7 +51,10 @@ def main():
         base_kwargs['activation'] = 'relu'
     base = FILMBase #FILMBase
 
-    test_graphs = [1,2,3,4,5]
+    if args.gset > 0:
+        test_graphs = [args.gset]
+    else:
+        test_graphs = [1,2,3,4,5]
 
     #---------------------------------------------------------
 
@@ -71,8 +74,17 @@ def main():
     torch.set_num_threads(1)
     device = torch.device("cuda:0" if args.cuda else "cpu")
 
-    envs = SIMGeneratorRandom(800, 0.06, args.num_processes, config, 
-                              keep=args.sim_keep, n_sims=args.sim_nsim)
+    if args.gset > 0:
+        envs = []
+        for g in test_graphs:
+            g_ = read_gset('../data/G{}.txt'.format(g), negate=True)
+            s = SIMCIM(g_, device=device, batch_size=args.num_processes, **config)
+            s.runpump()
+            envs.append(s)
+        envs = SIMCollection(envs, [gbench[g] for g in test_graphs])
+    else:
+        envs = SIMGeneratorRandom(800, 0.06, args.num_processes, config, 
+                                keep=args.sim_keep, n_sims=args.sim_nsim)
 
     if args.snapshot is None:
         actor_critic = Policy(envs.observation_space.shape, envs.action_space,
@@ -119,7 +131,7 @@ def main():
     eval_envs = []
     for g in test_graphs:
         g_ = read_gset('../data/G{}.txt'.format(g), negate=True)
-        s = SIMCIM(g_, device=device, batch_size=args.num_val_processes//len(test_graphs), **config)
+        s = SIMCIM(g_, device=device, batch_size=args.num_val_processes, **config)
         s.runpump()
         eval_envs.append(s)
     eval_envs = SIMCollection(eval_envs, [gbench[g] for g in test_graphs])
@@ -304,6 +316,8 @@ def main():
 
             if stoch_cuts is not None:
                 fig, axs = plt.subplots(len(ref_cuts), 1, sharex=False, tight_layout=True)
+                if len(ref_cuts)==1:
+                    axs = [axs]
                 for gi in range(len(ref_cuts)):
                     mn = min(ref_cuts[gi])
                     axs[gi].hist(ref_cuts[gi], bins=100, alpha=0.7)
