@@ -1,4 +1,4 @@
-from collections import deque
+from collections import deque, Counter
 import torch
 import numpy as np
 from gym.spaces import Box, Discrete
@@ -11,7 +11,7 @@ class SIMCIM():
                  batch_size=256, pump_bins=3, lag=10, rshift=0.0, 
                  pump_scale=0.1, reward_kind='rank', continuous=False, span=3, 
                  last_runs=20, percentile=99, add_linear=True,  
-                 start_pump=1.0, static_features=True, extra_features=True):
+                 start_pump=1.0, static_features=True, extra_features=True, curiosity_num=0):
         A = torch.tensor(A, dtype=torch.float32, device=device)
         A.requires_grad = False
         self.A = A
@@ -33,6 +33,7 @@ class SIMCIM():
         self.start_pump = start_pump
         self.static_features = static_features
         self.extra_features = extra_features
+        self.curiosity_num = curiosity_num
         
         if bias is None:
             self.b = torch.zeros(A.shape[0]).to(A)
@@ -153,6 +154,9 @@ class SIMCIM():
         self.statfeat = agr.repeat(self.num_envs, 1)
         
         self.perc = np.nan
+
+        if self.curiosity_num > 0:
+            self.visited = Counter()
         
     def reset(self):
         self.c = torch.zeros(self.batch_size, self.A.shape[0], requires_grad=False, 
@@ -203,6 +207,22 @@ class SIMCIM():
                 r = s*gr - (1-s)*le  
                 if np.sum(eq)>0:
                     r -= np.sum(r)*eq/np.sum(eq)
+
+                # curiosity bonus for solutions that are
+                # equal to `perc` and occured less than `curiosity_num` times
+                if self.curiosity_num > 0:
+                    sgn = torch.sign(self.c)
+                    sgn[sgn==0] = 1
+                    sgn = ((sgn+1)/2).to(dtype=torch.uint8, device='cpu').numpy()
+                    curiosity_reward = (-1) * np.ones(self.cut.shape)
+                    for j, (ct, res) in enumerate(zip(self.cut, sgn)):
+                        if ct == self.perc:
+                        #if self.perc-3  <= ct <= self.perc:
+                            res = int(''.join(map(str, res)), 2)
+                            if self.visited[res] <= self.curiosity_num:
+                                curiosity_reward[j] = s
+                            self.visited[res] += 1
+                    r = np.maximum(r, curiosity_reward)
             else:
                 r = np.zeros(self.cut.shape)
         self.sumrew += r

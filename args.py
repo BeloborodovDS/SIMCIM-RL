@@ -104,6 +104,8 @@ def my_get_args(string=None):
                         help='SIM: remove static features')
     parser.add_argument('--sim-no-extra', action='store_true', default=False,
                         help='SIM: remove extra features')
+    parser.add_argument('--curiosity', type=int, default=0,
+                        help='SIM: number of first occurances of solution that yields reward (0 to disable)')
 
     parser.add_argument('--sim-keep', type=int, default=5,
                         help='Number of runs after which to resample graph')

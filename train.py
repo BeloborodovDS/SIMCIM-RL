@@ -46,7 +46,8 @@ def main():
         add_linear = not args.sim_no_linear,
         start_pump = args.sim_start,
         static_features = not args.sim_no_static,
-        extra_features = not args.sim_no_extra
+        extra_features = not args.sim_no_extra,
+        curiosity_num = args.curiosity
     )
 
     base_kwargs = {'hidden_size': args.hidden_size, 
