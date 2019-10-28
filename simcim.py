@@ -202,27 +202,31 @@ class SIMCIM():
                 le = (self.cut < self.perc).astype(float)
                 eq = (self.cut == self.perc).astype(float)
                 s = self.percentile/100
-                rand = np.random.binomial(1,s,size=eq.shape)
-                rand = (1-rand)*s + rand*(1-s)
+
                 r = s*gr - (1-s)*le  
-                if np.sum(eq)>0:
+                if np.sum(eq)>0 and (self.curiosity_num <= 0):
                     r -= np.sum(r)*eq/np.sum(eq)
 
-                # curiosity bonus for solutions that are
-                # equal to `perc` and occured less than `curiosity_num` times
+                # different reward for new // old solutions equal to `perc`
+                # (i.e. seen less // more than `curiosity_num` times)
+                # chosen to sum to 0, proportional to s // 1-s
                 if self.curiosity_num > 0:
+                    new = np.zeros_like(eq)
+                    old = np.zeros_like(eq)
                     sgn = torch.sign(self.c)
                     sgn[sgn==0] = 1
                     sgn = ((sgn+1)/2).to(dtype=torch.uint8, device='cpu').numpy()
-                    curiosity_reward = (-1) * np.ones(self.cut.shape)
                     for j, (ct, res) in enumerate(zip(self.cut, sgn)):
                         if ct == self.perc:
-                        #if self.perc-3  <= ct <= self.perc:
                             res = int(''.join(map(str, res)), 2)
                             if self.visited[res] <= self.curiosity_num:
-                                curiosity_reward[j] = s
+                                new[j] = 1.0
+                            else:
+                                old[j] = 1.0
                             self.visited[res] += 1
-                    r = np.maximum(r, curiosity_reward)
+                    if np.sum(new) + np.sum(old) > 0:
+                        x = - np.sum(r) / ((1-s)*np.sum(old) + s*np.sum(new))
+                        r += (1-s)*x*old + s*x*new
             else:
                 r = np.zeros(self.cut.shape)
         self.sumrew += r
