@@ -86,8 +86,8 @@ def my_get_args(string=None):
                         help='SIM reward shift for `cut` option (1.0)')
     parser.add_argument('--sim-scale', type=float, default=0.04,
                         help='SIM pump scale (0.04)')
-    parser.add_argument('--sim-reward', default='rank',
-                        help='SIM Reward kind: cut / (rank) / rank_orig')
+    parser.add_argument('--sim-reward', default='R3',
+                        help='SIM Reward kind: cut / R2 / (R3)')
     parser.add_argument('--sim-continuous', action='store_true', default=False,
                         help='Continuous actions in SIM')
     parser.add_argument('--sim-span', type=float, default=3.0,

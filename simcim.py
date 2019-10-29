@@ -196,7 +196,7 @@ class SIMCIM():
             
         if self.reward_kind=='cut':
             r = 100*(self.i>=self.n_iter)*(self.cut/self.reward_norm - self.rshift)
-        elif self.reward_kind=='rank':
+        elif self.reward_kind=='R3':
             if self.i>=self.n_iter:
                 gr = (self.cut > self.perc).astype(float)
                 le = (self.cut < self.perc).astype(float)
@@ -227,6 +227,16 @@ class SIMCIM():
                     if np.sum(new) + np.sum(old) > 0:
                         x = - np.sum(r) / ((1-s)*np.sum(old) + s*np.sum(new))
                         r += (1-s)*x*old + s*x*new
+            else:
+                r = np.zeros(self.cut.shape)
+        elif self.reward_kind=='R2':
+            if self.i>=self.n_iter:
+                gr = (self.cut > self.perc).astype(float)
+                le = (self.cut < self.perc).astype(float)
+                eq = (self.cut == self.perc).astype(float)
+                rand = np.random.binomial(1, 0.5, eq.shape) * 2 - 1
+
+                r = gr - le  + rand * eq
             else:
                 r = np.zeros(self.cut.shape)
         self.sumrew += r
