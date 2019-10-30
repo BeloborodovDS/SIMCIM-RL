@@ -107,7 +107,7 @@ def my_get_args(string=None):
     parser.add_argument('--curiosity', type=int, default=0,
                         help='SIM: number of first occurances of solution that yields reward (0 to disable)')
 
-    parser.add_argument('--sim-keep', type=int, default=5,
+    parser.add_argument('--sim-keep', type=int, default=1,
                         help='Number of runs after which to resample graph')
     parser.add_argument('--sim-nsim', type=int, default=1,
                         help='Number of graphs to keep simultaneously')
@@ -118,6 +118,9 @@ def my_get_args(string=None):
 
     parser.add_argument('--gset', type=int, default=0, 
                         help='Train on graph instance G[gset] from Gset (0 to generate random graphs)')
+
+    parser.add_argument('--dry-run', action='store_true', default=False,
+                        help='Print configs and exit')
 
     if string is None:
         args = parser.parse_args()

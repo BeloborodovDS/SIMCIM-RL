@@ -51,7 +51,7 @@ def main():
     )
 
     base_kwargs = {'hidden_size': args.hidden_size, 
-                   'film_size': 800 * (not args.sim_no_extra)}
+                   'film_size': 800 * (not args.sim_no_static)}
     if args.relu:
         base_kwargs['activation'] = 'relu'
     base = FILMBase #FILMBase
@@ -69,6 +69,9 @@ def main():
 
     num_updates = int(args.num_env_steps) // args.num_steps // args.num_processes
     print('Num updates: ', num_updates)
+
+    if args.dry_run:
+        return
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
