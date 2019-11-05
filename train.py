@@ -73,6 +73,7 @@ def main():
     if args.dry_run:
         return
 
+    np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
     if args.cuda and torch.cuda.is_available() and args.cuda_deterministic:
@@ -95,7 +96,7 @@ def main():
         logdata['bls_bench'] = [gbench[g] for g in test_graphs]
     else:
         envs = SIMGeneratorRandom(800, 0.06, args.num_processes, config, 
-                                keep=args.sim_keep, n_sims=args.sim_nsim)
+                                  keep=args.sim_keep, n_sims=args.sim_nsim, device=device)
 
     if args.snapshot is None:
         actor_critic = Policy(envs.observation_space.shape, envs.action_space,

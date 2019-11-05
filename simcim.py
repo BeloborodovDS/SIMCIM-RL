@@ -47,7 +47,7 @@ class SIMCIM():
         self.sigma = sigma
         self.sigma_base = float(np.log10(sigma))
 
-        eival, Q = torch.eig(torch.tensor(A), True)
+        eival, Q = torch.eig(self.A, True)
         eival = eival[:,0]
         eind = torch.argsort(eival, descending=True)
         eival = eival[eind]
