@@ -281,7 +281,7 @@ class SIMCIM():
         res = self.data2state(), r, done, info
         return res
         
-    def runpump(self, batch_size=128, debug=False, pumpfunc=None):
+    def runpump(self, batch_size=None, debug=False, pumpfunc=None):
         self.cut_values = []
         if debug:
             self.trajects = []
@@ -294,6 +294,8 @@ class SIMCIM():
             
         if pumpfunc is None:
             pumpfunc = lambda it: (1.0 - it/self.n_iter)
+        if batch_size is None:
+            batch_size = self.batch_size
             
         c = torch.zeros(batch_size, self.A.shape[0], requires_grad=False, 
                         dtype=torch.float32, device=self.device)

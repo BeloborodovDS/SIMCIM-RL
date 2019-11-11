@@ -8,6 +8,7 @@ import json
 
 import numpy as np
 import torch
+import random
 
 from matplotlib import pyplot as plt
 
@@ -73,6 +74,7 @@ def main():
     if args.dry_run:
         return
 
+    random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
