@@ -121,6 +121,8 @@ def my_get_args(string=None):
 
     parser.add_argument('--dry-run', action='store_true', default=False,
                         help='Print configs and exit')
+    parser.add_argument('--override', action='store_true', default=False,
+                        help='Override snapshot arguments')
 
     if string is None:
         args = parser.parse_args()
@@ -129,7 +131,7 @@ def my_get_args(string=None):
 
     dn = os.path.join(args.save_dir, args.algo)
 
-    if args.snapshot is not None:
+    if (args.snapshot is not None) and (not args.override):
         fn = '-'.join(args.snapshot.split('-')[:-1]) + '.json'
         fn = os.path.join(dn, fn)
         with open(fn) as f:

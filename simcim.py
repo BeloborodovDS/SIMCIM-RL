@@ -59,7 +59,6 @@ class SIMCIM():
         self.mie = torch.min(eival).item()
         self.asum = torch.sum(A).item()
         self.rec_ind = 0
-        self.b1 = torch.mm(self.Q.transpose(0,1), self.b[:,None])[:,0]
         
         index = torch.argmax(eival).item()
         self.eivec = self.Q[:,index].clone()[None,:]
@@ -71,7 +70,6 @@ class SIMCIM():
                 self.lr *= 5
         else:
             self.lr = lr
-        self.lr_base = float(np.log10(self.lr))
             
         self.setup_env()
         
@@ -193,6 +191,7 @@ class SIMCIM():
         if (self.i>=self.n_iter) and extend_perc:
             self.cut_deque.extend(list(self.cut))
             self.perc = np.percentile(self.cut_deque, self.percentile, interpolation='higher')
+            self.mxperc = np.max(self.cut_deque)
             
         if self.reward_kind=='cut':
             r = 100*(self.i>=self.n_iter)*(self.cut/self.reward_norm - self.rshift)
@@ -237,6 +236,12 @@ class SIMCIM():
                 rand = np.random.binomial(1, 0.5, eq.shape) * 2 - 1
 
                 r = gr - le  + rand * eq
+            else:
+                r = np.zeros(self.cut.shape)
+        elif self.reward_kind=='max':
+            if self.i>=self.n_iter:
+                self.perc = self.mxperc
+                r = (self.cut == self.perc).astype(float)
             else:
                 r = np.zeros(self.cut.shape)
         self.sumrew += r
