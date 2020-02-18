@@ -90,7 +90,7 @@ def main():
     if args.gset > 0:
         envs = []
         for g in test_graphs:
-            g_ = read_gset('../data/G{}.txt'.format(g), negate=True)
+            g_ = read_gset('./data/G{}.txt'.format(g), negate=True)
             s = SIMCIM(g_, device=device, batch_size=args.num_processes, **config)
             s.runpump()
             envs.append(s)
@@ -135,7 +135,7 @@ def main():
         
     eval_envs = []
     for g in test_graphs:
-        g_ = read_gset('../data/G{}.txt'.format(g), negate=True)
+        g_ = read_gset('./data/G{}.txt'.format(g), negate=True)
         s = SIMCIM(g_, device=device, batch_size=args.num_val_processes, **config)
         s.runpump()
         eval_envs.append(s)
