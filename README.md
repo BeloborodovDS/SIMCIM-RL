@@ -4,6 +4,8 @@
 ```
 conda env create --name sim -f environment.yml
 conda activate sim
+pip install git+https://github.com/BeloborodovDS/baselines.git
+conda install -c conda-forge tensorflow
 ```
 
 ## Data sources
