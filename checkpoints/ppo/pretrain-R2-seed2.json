@@ -1,0 +1,21 @@
+{
+  "hidden_size": 256,
+  "num_steps": 100,
+  "relu": false,
+  "sim_bins": 3,
+  "sim_continuous": false,
+  "sim_keep": 1,
+  "sim_momentum": 0.9,
+  "sim_no_extra": false,
+  "sim_no_linear": false,
+  "sim_no_static": false,
+  "sim_nsim": 1,
+  "sim_perc_len": 5,
+  "sim_percentile": 99.0,
+  "sim_reward": "R2",
+  "sim_rshift": 1.0,
+  "sim_scale": 0.04,
+  "sim_sigma": 0.03,
+  "sim_span": 3.0,
+  "sim_start": 1.0
+}
